@@ -1,0 +1,19 @@
+name,details,group
+carrier,Mã định danh của hãng hàng không (Carrier Code),categorical
+airport,Mã định danh của sân bay (Airport Code),categorical
+arr_flights,Tổng số chuyến bay dự kiến đến sân bay,count
+arr_del15,Số lượng chuyến bay bị chậm từ 15 phút trở lên,count
+carrier_ct,Số lượng chuyến bay bị chậm do lỗi từ hãng hàng không,count
+weather_ct,Số lượng chuyến bay bị chậm do điều kiện thời tiết,count
+nas_ct,Số lượng chuyến bay bị chậm do hệ thống hàng không quốc gia,count
+security_ct,Số lượng chuyến bay bị chậm do vấn đề an ninh,count
+late_aircraft_ct,Số lượng chuyến bay bị chậm do máy bay đến trễ từ chặng trước,count
+arr_cancelled,Số lượng chuyến bay bị hủy,count
+arr_diverted,Số lượng chuyến bay bị chuyển hướng hạ cánh,count
+arr_delay,Tổng số phút chậm trễ của tất cả các chuyến bay (Mục tiêu dự báo),delay
+carrier_delay,Tổng số phút chậm trễ do lỗi hãng hàng không,delay
+weather_delay,Tổng số phút chậm trễ do thời tiết,delay
+nas_delay,Tổng số phút chậm trễ do hệ thống hàng không quốc gia,delay
+security_delay,Tổng số phút chậm trễ do an ninh,delay
+late_aircraft_delay,Tổng số phút chậm trễ do máy bay đến trễ,delay
+flight_date,Thời gian ghi nhận dữ liệu (Dùng cho phân tích Time Series),time
