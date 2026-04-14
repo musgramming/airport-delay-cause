@@ -48,9 +48,9 @@ first_layout = html.Div([
                 dbc.Button(
                     "Vẽ biểu đồ", 
                     id="draw-button", 
-                    color="primary", # Màu xanh chuẩn Urban
-                    className="mt-3", # Margin top cho thoáng
-                    n_clicks=0 # Khởi tạo số lần click
+                    color="primary",
+                    className="mt-3",
+                    n_clicks=0
                 )
             ], style={"textAlign": "right"})
         ])
@@ -80,8 +80,8 @@ layout = dbc.Container([
 @callback(
     Output("overview-graph", "figure"),
     Input("draw-button", "n_clicks"),
-    State("group-by-selector", "value"), # 'carrier' hoặc 'airport'
-    State("column-selector", "value"),   # Các cột như 'arr_flights', 'arr_del15'
+    State("group-by-selector", "value"),
+    State("column-selector", "value"),
     prevent_initial_callback=True
 )
 def update_overview_graph(n_clicks, group_by, selected_col):
@@ -89,11 +89,8 @@ def update_overview_graph(n_clicks, group_by, selected_col):
         return no_update
 
     try:
-        # 1. Chọn bảng lookup dựa trên radio item
         lookup_table = CARRIER_TABLE if group_by == "carrier" else AIRPORT_TABLE
         
-        # 2. Xử lý Join & Aggregation
-        # Ép kiểu String (Utf8) cho cột khóa ở cả 2 bảng để đảm bảo Join thành công
         query = (
             MAIN_DF
             .with_columns(pl.col(group_by).cast(pl.Utf8)) 
@@ -102,24 +99,19 @@ def update_overview_graph(n_clicks, group_by, selected_col):
             .join(
                 lookup_table.with_columns(pl.col(group_by).cast(pl.Utf8)),
                 on=group_by,
-                how="inner" # Dùng inner để lọc bỏ những mã không có tên
+                how="inner"
             )
             .sort("total_value", descending=True)
             .head(15)
         )
 
-        # 3. Kích nổ dữ liệu
         df_plot = query.collect().to_pandas()
         
-        # DEBUG: Kiểm tra xem Join xong còn bao nhiêu dòng
-        print(f"📊 DEBUG: Bấm nút vẽ - Group: {group_by} | Số dòng thu được: {len(df_plot)}")
-
         if df_plot.empty:
             print("⚠️ CẢNH BÁO: Kết quả rỗng! Có thể do lệch mã định danh giữa 2 bảng.")
             return no_update
 
-        # 4. Vẽ biểu đồ với tên hiển thị đúng
-        display_name = f"{group_by}_name" # Sẽ ra 'carrier_name' hoặc 'airport_name'
+        display_name = f"{group_by}_name"
 
         fig = px.bar(
             df_plot,
@@ -129,7 +121,7 @@ def update_overview_graph(n_clicks, group_by, selected_col):
             title=f"Top 15 {group_by.upper()} theo {selected_col.replace('_', ' ').title()}",
             color="total_value",
             color_continuous_scale="Viridis",
-            template="plotly_dark" # Đổi sang Dark cho đúng chất Urban Ninja
+            template="plotly_dark"
         )
 
         fig.update_layout(

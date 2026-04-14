@@ -11,7 +11,6 @@ register_page(__name__, path="/explorer")
 
 
 
-# --- PHẦN ĐIỀU KHIỂN BÊN TRÁI ---
 left_layout = dbc.Card([
     dbc.CardHeader(html.H4("🔍 Bộ lọc thông minh", className="mb-0")),
     dbc.CardBody([
@@ -59,6 +58,8 @@ left_layout = dbc.Card([
     ])
 ], className="shadow-sm")
 
+
+
 # --- PHẦN HIỂN THỊ BÊN PHẢI ---
 right_layout = html.Div([
     dbc.Tabs([
@@ -82,8 +83,6 @@ layout = dbc.Container([
 
 # --- CALLBACKS ---
 
-from dash import callback_context # Thêm cái này để bắt sự kiện
-
 @callback(
     Output("exp-carrier-sel", "options"),
     Output("exp-airport-sel", "options"),
@@ -92,38 +91,29 @@ from dash import callback_context # Thêm cái này để bắt sự kiện
 )
 def sync_dropdowns(selected_carriers, selected_airports):
     ctx = callback_context
-    # Kiểm tra xem cái nào vừa được trigger
     trigger_id = ctx.triggered[0]["prop_id"].split(".")[0] if ctx.triggered else None
 
-    # Load mapping data một lần
     mapping = CARRIER_AIRPORT_MAP.with_columns([
         pl.col("carrier").cast(pl.Utf8),
         pl.col("airport").cast(pl.Utf8)
     ])
 
-    # Logic lọc chéo
     if trigger_id == "exp-carrier-sel" and selected_carriers:
-        # Nếu vừa chọn Hãng -> Lọc danh sách Sân bay
         valid_map = mapping.filter(pl.col("carrier").is_in(selected_carriers))
     elif trigger_id == "exp-airport-sel" and selected_airports:
-        # Nếu vừa chọn Sân bay -> Lọc danh sách Hãng
         valid_map = mapping.filter(pl.col("airport").is_in(selected_airports))
     else:
-        # Mặc định hiện tất cả
         valid_map = mapping
 
-    # Lấy danh sách ID duy nhất
     res_df = valid_map.collect()
     valid_c_list = res_df.get_column("carrier").unique().to_list()
     valid_a_list = res_df.get_column("airport").unique().to_list()
 
-    # Tạo options cho Hãng
     carrier_options = [
         {"label": r["carrier_name"], "value": r["carrier"]}
         for r in CARRIER_TABLE.filter(pl.col("carrier").is_in(valid_c_list)).collect().to_dicts()
     ]
 
-    # Tạo options cho Sân bay
     airport_options = [
         {"label": f"{r['airport_name']} ({r['airport']})", "value": r["airport"]}
         for r in AIRPORT_TABLE.filter(pl.col("airport").is_in(valid_a_list)).collect().to_dicts()
@@ -163,7 +153,6 @@ def process_explorer_data(n_clicks, active_tab, carriers, airports, selected_col
         return no_update
 
     try:
-        # 1. Ép kiểu và Lọc dữ liệu
         lf = MAIN_DF.with_columns([
             pl.col("carrier").cast(pl.Utf8),
             pl.col("airport").cast(pl.Utf8)
@@ -174,7 +163,6 @@ def process_explorer_data(n_clicks, active_tab, carriers, airports, selected_col
         if airports:
             lf = lf.filter(pl.col("airport").is_in(airports))
 
-        # 2. Aggregation
         query = (
             lf.group_by(["flight_date", "carrier", "airport"])
             .agg(pl.col(selected_col).fill_null(0).sum().alias("y_value"))
@@ -186,30 +174,24 @@ def process_explorer_data(n_clicks, active_tab, carriers, airports, selected_col
         if df_final.empty:
             return dbc.Alert("⚠️ Không có dữ liệu phù hợp. Hãy thử bớt bộ lọc!", color="warning")
 
-        # 3. Join lấy tên đầy đủ
         df_c = CARRIER_TABLE.with_columns(pl.col("carrier").cast(pl.Utf8)).collect().to_pandas()
         df_a = AIRPORT_TABLE.with_columns(pl.col("airport").cast(pl.Utf8)).collect().to_pandas()
         
         df_final = df_final.merge(df_c, on="carrier", how="left").merge(df_a, on="airport", how="left")
         
-        # --- NINJA TRICK: Tạo nhãn gộp để xử lý tên dài và ô trống ---
-        # Cắt bớt tên sân bay nếu quá dài (ví dụ lấy 25 ký tự đầu)
         df_final["facet_label"] = (
             df_final["carrier_name"] + " | " + 
             df_final["airport_name"].str.slice(0, 30) + "..."
         )
 
-        # 4. Lấy label mô tả
         detail_df = DETAIL.collect()
         display_label = detail_df.filter(pl.col("name") == selected_col)["details"][0]
 
         if active_tab == "tab-chart":
             num_plots = df_final["facet_label"].nunique()
-            # Lấy số cột dựa trên số hãng đã chọn
             wrap_val = max(1, len(carriers)) if carriers else 2
             rows = (num_plots + wrap_val - 1) // wrap_val
             
-            # Tăng chiều cao mỗi hàng lên để biểu đồ không bị nén
             dynamic_height = max(500, rows * 380) 
 
             fig = px.line(
@@ -226,33 +208,27 @@ def process_explorer_data(n_clicks, active_tab, carriers, airports, selected_col
                 title=f"Phân tích hệ thống: {display_label}"
             )
 
-            # --- NINJA UI FIX: CHỐNG ĐÈ CHỮ ---
-            
-            # 1. Đẩy nhãn (Annotation) lên cao hẳn để không chạm vào đường biên
             fig.update_annotations(patch={
                 "textangle": 0, 
-                "yshift": 35, # Nhấc cao 35 đơn vị
-                "font": {"size": 11, "color": "#00d4ff"} # Thêm màu cho dễ phân biệt
+                "yshift": 35, 
+                "font": {"size": 11, "color": "#00d4ff"} 
             })
             
-            # 2. Đưa Legend xuống dưới biểu đồ (y = -0.1 hoặc thấp hơn tùy số hàng)
             fig.update_layout(
-                margin=dict(t=120, b=100, l=60, r=40), # Tăng lề dưới (b) để chứa legend
+                margin=dict(t=120, b=100, l=60, r=40),
                 hovermode="x unified",
                 showlegend=True,
                 legend=dict(
-                    orientation="v",        # Nằm ngang
-                    yanchor="top",          # Neo ở đỉnh của legend
-                    y=-0.15,                # Vị trí âm để đẩy xuống dưới trục X
+                    orientation="v",        
+                    yanchor="top",          
+                    y=-0.15,                
                     xanchor="center", 
                     x=0.5
                 )
             )
 
-            # 3. Làm sạch nhãn (Xóa "facet_label=")
             fig.for_each_annotation(lambda a: a.update(text=a.text.split("=")[-1]))
 
-            # 4. Tinh chỉnh trục
             fig.update_yaxes(matches='y', showgrid=True, gridcolor='rgba(255,255,255,0.05)')
             fig.update_xaxes(showgrid=True, gridcolor='rgba(255,255,255,0.05)')
 

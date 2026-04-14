@@ -3,7 +3,6 @@ import dash_bootstrap_components as dbc
 
 register_page(__name__, path='/')
 
-# Thiết kế phần Banner chào mừng
 welcome_banner = dbc.Container([
     html.Div([
         html.H1("AIRLINE DELAY ANALYSIS SYSTEM", className="display-3 fw-bold text-primary"),
@@ -18,9 +17,7 @@ welcome_banner = dbc.Container([
 
 
 
-# Các thẻ điều hướng chính
 nav_cards = dbc.Row([
-    # Thẻ dẫn vào trang Analytics
     dbc.Col(
         dbc.Card([
             dbc.CardBody([
@@ -32,7 +29,6 @@ nav_cards = dbc.Row([
         width=12, md=6, lg=4
     ),
     
-    # Thẻ giới thiệu về Dataset (hoặc một trang Report khác)
     dbc.Col(
         dbc.Card([
             dbc.CardBody([
@@ -44,7 +40,6 @@ nav_cards = dbc.Row([
         width=12, md=6, lg=4
     ),
 
-    # Thẻ thông tin dự án (Khoe kỹ năng IS)
     dbc.Col(
         dbc.Card([
             dbc.CardBody([
